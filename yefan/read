@@ -1,0 +1,6 @@
+# 读取整个文件，放到一个字符串变量中，返回类型是String
+print("\n\n------------read()------------")
+f = open('test2.txt', 'r')
+sample = f.read()
+print('read():', sample)
+f.close()

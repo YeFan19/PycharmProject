@@ -1,0 +1,186 @@
+import os
+
+
+class InputExample(object):
+    """A single training/test example for simple sequence classification."""
+    # 对简单序列分类的训练，定义了一个类InputExample
+    def __init__(self, guid: object, text: object, label: object = None) -> object:
+        """Constructs a InputExample.
+        Args:
+          guid: Unique id for the example.
+          text_a: string. The untokenized text of the first sequence. For single
+            sequence tasks, only this sequence must be specified.
+          label: (Optional) string. The label of the example. This should be
+            specified for train and dev examples, but not for test examples.
+            :param guid:
+            :param text:
+            :param label:
+        """
+
+        self.guid = guid
+        self.text = text
+        self.label = label
+        # 定义属性值
+
+
+def read_txt_to_examples(input_file, mode):
+    # mode = 'tag' : 标签识别模式
+    # mode = 'classify' : 需求分类模式
+    # mode = 'predict' : 预测模式
+    with open(input_file, 'r', encoding='utf-8') as f:
+        examples = []  # 赋一个空列表给example
+        lines = f.readlines()   # 读取inpu_file每一行
+        for i, line in enumerate(lines):
+            if line.startswith('id:'):
+                sentence_id = int(line[3:8])
+                texts = []
+                tag_labels = []
+                classify_labels = []
+
+            if line.startswith(',,\n'):
+                if (mode == 'tag'):
+                    example = InputExample(sentence_id, texts, tag_labels)
+                    examples.append(example)
+                elif (mode == 'classify'):
+                    example = InputExample(sentence_id, texts, classify_labels)
+                    examples.append(example)
+                elif (mode.startswith('predict')) and (sentence_id >= LABELED_ID):
+                    example = InputExample(sentence_id, texts, ['O'] * len(texts))
+                    examples.append(example)
+                continue
+            line_list = line.split(',')
+            texts.append(line_list[0])
+            if line_list[1] == '':
+                classify_labels.append('O')
+            else:
+                classify_labels.append(line_list[1])
+            if line_list[2] == '\n':
+                tag_labels.append('O')
+            else:
+                tag_labels.append(line_list[2].strip())
+
+    text_list = []
+    duplicated_examples = []
+    for example in examples:
+        flag = True
+        text = ''.join(example.text)
+        for old_text in text_list:
+            if text == old_text:
+                flag = False
+        if flag:
+            duplicated_examples.append(example)
+            text_list.append(''.join(example.text))
+    return duplicated_examples
+
+os.chdir('C:\\Users\\Ye.Fan\\Desktop')
+#  .chdir 改变工作目录 到Desktop
+with open('Renew_ner20190516.csv', 'r', encoding='utf-8') as f:
+    lines = f.readlines()
+    # .read()每次读取整个文件，放到一个字符串变量中，返回类型是String
+    # .readline()每次返回一行，字符串变量
+    # .readlines()列表形式返回全文，每行作为一个字符串作为列表元素
+
+tag_examples = read_txt_to_examples('Renew_ner20190516.csv', 'tag')
+# tag_examples = [ <__main__.InputExample object at 0x00000174AEEEC748>,。。。] 一个列表，表示一个对象
+# 定义tag_examples
+classify_examples = read_txt_to_examples('Renew_ner20190516.csv', 'classify')
+# 定义classify_examples
+
+final_results = []  # 最终结果，列表形式
+for i, example in enumerate(tag_examples):
+    sentence = ''.join(example.text)
+    # example的text属性;string.join(sequence):将string与sequence中的所有字符串元素合并，并返回结果
+    '''print(sentence)     得到结果是：id:10000我是做饰品的，目前有一块需要用到拧好的铁丝，见图片。目前需要自动化的机器进行铁线拧成，要求0.5米，1米，1.5米三种长度，长短可调。
+    id:10001我司是做非标自动化设备的，手上非标设备研发项目太多，忙不过来，寻求福州愿意合作的机械设计高手。非标自动化设备外包，具体联系详谈。  
+    生成70行如上数据'''
+    tags = []
+    tag_flag = False
+    for j, tag in enumerate(example.label):
+        if tag == 'B-TG':
+            if tag_flag:
+                tags.append(new_tag)
+            new_tag = example.text[j]
+            tag_flag = True
+        elif tag == 'I-TG':
+            new_tag += example.text[j]
+        elif tag == 'O':
+            if tag_flag:
+                tags.append(new_tag)
+                tag_flag = False
+    final_results.append([sentence[8:], list(set(tags))])
+    # 可遍历的数据对象组合为一个索引序列 for i, example in enumerate(tag_examples)
+
+for i, example in enumerate(classify_examples):
+    classify_results = []
+    flag = False
+    for j, label in enumerate(example.label):
+        if label.startswith('B-'):
+            if flag:
+                classify_results.append(new_classify + '###' + new_classify_label)
+            new_classify = example.text[j]
+            new_classify_label = example.label[j].split('-')[1]
+            flag = True
+        elif label.startswith('I-'):
+            new_classify += example.text[j]
+        elif label == 'O':
+            if flag:
+                classify_results.append(new_classify + '###' + new_classify_label)
+                flag = False
+    final_results[i].append(list(set(classify_results)))
+
+text_node_CQL = '''
+    CREATE (need%d:OriginalText{id:%d, content:"%s"})
+    '''
+tag_node_CQL = '''
+    CREATE (tag%d:Tag{id:%d, tag_name:"%s"})
+    '''
+subneed_node_CQL = '''
+    CREATE (sub_need%d:%s{id:%d, name:"%s"})
+    '''
+tag_relation_CQL = '''
+    CREATE (need%d)-[r%d:Tag]->(tag%d)
+    '''
+subneed_relation_CQL = '''
+    CREATE (need%d)-[r%d:Sub]->(sub_need%d)
+    '''
+
+final_CQL = ''
+tag_dict = {}
+sub_dict = {}
+sub_abbr_dict = {'F': 'Function', 'S': 'Structure', 'T': 'Technology', 'FO': 'Form', 'O': 'Other'}
+tag_id = 1
+sub_id = 1
+relation_id = 1
+
+for i, result in enumerate(final_results):
+    # 先创建一个OriginalText节点
+    final_CQL += text_node_CQL % (i + 1, i + 1, result[0])
+    # 查重后创建一个Tag节点
+    for tag in result[1]:
+        if tag not in list(tag_dict.keys()):
+            tag_dict[tag] = tag_id
+            final_CQL += tag_node_CQL % (tag_id, tag_id, tag)
+            final_CQL += tag_relation_CQL % (i + 1, relation_id, tag_id)
+            relation_id += 1
+            tag_id += 1
+        else:
+            final_CQL += tag_relation_CQL % (i + 1, relation_id, tag_dict[tag])
+            relation_id += 1
+
+    # 查重后创建一个subneed节点
+
+    for sub in result[2]:
+        if sub not in list(sub_dict.keys()):
+            sub_dict[sub] = sub_id
+            final_CQL += subneed_node_CQL % (sub_id, sub_abbr_dict[sub.split('###')[1]], sub_id, sub.split('###')[0])
+            # dict字典，[]里是索引，sub.split以('###')进行划分得到的列表['自动化', 'T']，[1]即为'T',[0]即为'自动化'
+            final_CQL += subneed_relation_CQL % (i + 1, relation_id, sub_id)
+            relation_id += 1
+            sub_id += 1
+        else:
+            final_CQL += subneed_relation_CQL % (i + 1, relation_id, sub_dict[sub])
+            relation_id += 1
+
+with open('final_cql.txt', 'w', encoding='utf-8') as f:
+    f.write(final_CQL)
+    #  将final_CQL写入到final_cql.txt中

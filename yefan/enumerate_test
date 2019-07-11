@@ -1,0 +1,5 @@
+######enumerate迭代时获取索引
+
+text = ['滚动', '趋势', '不详火了']
+for i, example in enumerate(text):
+    print(i,example)

@@ -1,0 +1,4 @@
+print("\n\n------------------readline()----------------------")
+f = open('test2.txt', 'r')
+sample = f.readline()
+print("readline():", sample)

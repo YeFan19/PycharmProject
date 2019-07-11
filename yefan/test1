@@ -1,0 +1,2 @@
+a = 'test'
+print('it is a %s' %a)

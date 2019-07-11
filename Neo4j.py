@@ -1,0 +1,176 @@
+import os
+
+class InputExample(object):
+    """A single training/test example for simple sequence classification."""
+    def __init__(self, guid, text, label=None):
+        """Constructs a InputExample.
+        Args:
+          guid: Unique id for the example.
+          text_a: string. The untokenized text of the first sequence. For single
+            sequence tasks, only this sequence must be specified.
+          label: (Optional) string. The label of the example. This should be
+            specified for train and dev examples, but not for test examples.
+        """
+
+        self.guid = guid
+        self.text = text
+        self.label = label
+
+ 
+
+def read_txt_to_examples(input_file, mode):
+    # mode = 'tag' : 标签识别模式
+    # mode = 'classify' : 需求分类模式
+    # mode = 'predict' : 预测模式
+    with open(input_file, 'r', encoding='utf-8') as f:
+        examples = []
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+                if line.startswith('id:'):
+                    sentence_id = int(line[3:8])
+                    texts = []
+                    tag_labels = []
+                    classify_labels = []
+
+                if line.startswith(',,\n'):
+                    if (mode == 'tag'):
+                        example = InputExample(sentence_id, texts, tag_labels)
+                        examples.append(example)
+                    elif (mode == 'classify'):
+                        example = InputExample(sentence_id, texts, classify_labels)
+                        examples.append(example)
+                    elif (mode.startswith('predict')) and (sentence_id >= LABELED_ID):
+                        example = InputExample(sentence_id, texts, ['O'] * len(texts))
+                        examples.append(example)
+                    continue
+                line_list = line.split(',')
+                texts.append(line_list[0])
+                if line_list[1] == '':
+                    classify_labels.append('O')
+                else:
+                    classify_labels.append(line_list[1])
+                if line_list[2] == '\n':
+                    tag_labels.append('O')
+                else:
+                    tag_labels.append(line_list[2].strip())
+
+    text_list = []
+    duplicated_examples = []
+    for example in examples:
+        flag = True
+        text = ''.join(example.text)
+        for old_text in text_list:
+            if text == old_text:
+                flag = False
+        if flag:
+            duplicated_examples.append(example)
+            text_list.append(''.join(example.text))
+    return duplicated_examples
+
+ 
+
+ 
+
+os.chdir('C:\\Users\\Ye.Fan\\Desktop')
+with open('Renew_ner20190516.csv', 'r', encoding='utf-8') as f:
+    lines = f.readlines()
+
+tag_examples = read_txt_to_examples('Renew_ner20190516.csv', 'tag')
+classify_examples = read_txt_to_examples('Renew_ner20190516.csv', 'classify')
+
+final_results = []
+for i, example in enumerate(tag_examples):
+    sentence = ''.join(example.text)
+    tags = []
+    tag_flag = False
+    for j, tag in enumerate(example.label):
+        if tag == 'B-TG':
+            if tag_flag:
+                tags.append(new_tag)
+            new_tag = example.text[j]
+            tag_flag = True
+        elif tag == 'I-TG':
+            new_tag += example.text[j]
+        elif tag == 'O':
+            if tag_flag:
+                tags.append(new_tag)
+                tag_flag = False
+    final_results.append([sentence[8:], list(set(tags))])
+
+
+for i, example in enumerate(classify_examples):
+    classify_results = []
+    flag = False
+    for j, label in enumerate(example.label):
+        if label.startswith('B-'):
+            if flag:
+                classify_results.append(new_classify+'###'+new_classify_label)
+            new_classify = example.text[j]
+            new_classify_label = example.label[j].split('-')[1]
+            flag = True
+        elif label.startswith('I-'):
+            new_classify += example.text[j]
+        elif label == 'O':
+            if flag:
+                classify_results.append(new_classify+'###'+new_classify_label)
+                flag = False
+    final_results[i].append(list(set(classify_results)))
+
+text_node_CQL = '''
+CREATE (need%d:OriginalText{id:%d, content:"%s"})
+'''
+tag_node_CQL = '''
+CREATE (tag%d:Tag{id:%d, tag_name:"%s"})
+'''
+subneed_node_CQL = '''
+CREATE (sub_need%d:%s{id:%d, name:"%s"})
+'''
+tag_relation_CQL = '''
+CREATE (need%d)-[r%d:Tag]->(tag%d)
+'''
+subneed_relation_CQL = '''
+CREATE (need%d)-[r%d:Sub]->(sub_need%d)
+'''
+
+final_CQL = ''
+tag_dict = {}
+sub_dict = {}
+sub_abbr_dict = {'F':'Function', 'S':'Structure', 'T':'Technology', 'FO':'Form', 'O':'Other'}
+tag_id = 1
+sub_id = 1
+relation_id = 1
+
+
+for i, result in enumerate(final_results):
+     #先创建一个OriginalText节点
+    final_CQL += text_node_CQL % (i+1, i+1, result[0])   #语法问题
+    #查重后创建一个Tag节点
+    for tag in result[1]:
+        if tag not in list(tag_dict.keys()):
+            tag_dict[tag] = tag_id
+            final_CQL += tag_node_CQL % (tag_id, tag_id, tag)
+            final_CQL += tag_relation_CQL % (i+1, relation_id, tag_id)
+            relation_id += 1
+            tag_id += 1
+        else:
+            final_CQL += tag_relation_CQL % (i + 1, relation_id, tag_dict[tag])
+            relation_id += 1
+
+
+    #查重后创建一个subneed节点
+
+    for sub in result[2]:
+        if sub not in list(sub_dict.keys()):
+            sub_dict[sub] = sub_id
+            final_CQL += subneed_node_CQL % (sub_id, sub_abbr_dict[sub.split('###')[1]], sub_id, sub.split('###')[0])
+            final_CQL += subneed_relation_CQL % (i+1, relation_id, sub_id)
+            relation_id += 1
+            sub_id += 1
+        else:
+            final_CQL += subneed_relation_CQL % (i+1, relation_id, sub_dict[sub])
+            relation_id += 1
+
+
+with open('final_cql.txt', 'w', encoding='utf-8') as f:
+    f.write(final_CQL)
+    #  将final_CQL写入到final_cql.txt中

@@ -1,0 +1,11 @@
+
+examples = ['我爱学习', '讨厌编程', '去死吧']
+text= ''
+for i, example in enumerate(examples):
+#    flag = True
+
+    text1 = ''.join(example)
+    text += text1
+with open('text_test.txt', 'w', encoding='utf-8' ) as f:
+    print(text)
+    f.write(text)

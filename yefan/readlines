@@ -1,0 +1,8 @@
+print("----------------------readlines--------------")
+fo = open('test2.txt', 'r')                # 读取文件
+content = fo.readlines()                   # 列表形式返回全文，每行字符串形成列表元素
+print("readlines():", content)
+
+for i in range(0, len(content)):           # 利用for循环遍历每个字符串，然后打出每个字符串，各行去掉'\n'， 输出
+    print(content[i].rstrip('\n'))         # 列表方法，------rstrip('x')-------
+fo.close()

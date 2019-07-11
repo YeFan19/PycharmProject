@@ -1,0 +1,16 @@
+line = 'id:10000, ,'
+    #  print(i,line)  得到结果是0 id:10000, ,      1 我,,     2 是,,
+
+sentence_id = int(line[3:8])
+
+tag_labels = 123
+
+
+tag_node_CQL = '''
+    CREATE (tag%d:Tag{id:%d, tag_name:"%s"})
+    '''
+
+test_result =tag_node_CQL %  (sentence_id, tag_labels)
+with open('test0702.txt', 'w', encoding='utf-8') as f:
+    f.write(test_result)
+    #  将final_CQL写入到final_cql.txt中

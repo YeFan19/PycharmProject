@@ -1,0 +1,11 @@
+# .join()
+'''
+此函数展开来写是 str.join(item)，
+join函数是一个字符串操作函数
+str是字符串，item是一个成员，而且括号内只能有一个成员，如： ','.join('a', 'b') 这样是行不通的
+'''
+
+x = ','.join('还是学不会')
+print(x)
+
+# ''.join(self:str, iterable:iterable[str])
