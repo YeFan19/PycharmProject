@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../extradata/.idea/extradata.iml" filepath="$PROJECT_DIR$/../extradata/.idea/extradata.iml" />
       <module fileurl="file://$PROJECT_DIR$/../modules/.idea/modules.iml" filepath="$PROJECT_DIR$/../modules/.idea/modules.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/yefan.iml" filepath="$PROJECT_DIR$/.idea/yefan.iml" />
     </modules>
