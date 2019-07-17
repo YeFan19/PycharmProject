@@ -1,38 +1,21 @@
 # -*- coding: utf-8 -*-
 
-from py2neo import Graph
-import json
-import re
+from py2neo import Graph, Node, Relationship, NodeSelector
+graph = Graph("http://139.224.129.150:7474/browser/", username="neo4j", password="BIT!smartteam")
 
+# 用CQL进行查询，返回的结果是list
+data1 = graph.data('MATCH(p:Tag) return p')
+print("data1 = ", data1, type(data1))
 
-class Neo4j(object):
-    """知识图谱数据接口"""
+# 用find_one()方法进行node查找，返回的是查找node的第一个node
+data2 = graph.find_one(label='Form')
+print("data2 = ", data2, type(data2))
 
-    def __init__(self):
-        """初始化数据"""
-        # 与neo4j服务器建立连接
-        self.graph = Graph("http://139.224.129.150:7474/browser/", username="neo4j", password="BIT!smartteam")
-        self.nodes = []
+# 用find()方法进行node查找,需要遍历输出，类似于mongodb
+data3 = graph.find(label='Form')
+for data in data3:
+    print("data3 = ", data)
 
-
-
-    def get_all_nodes(self, nodes_data):
-        """获取知识图谱中所有节点数据"""
-        dict_node = {}
-        for node in nodes_data:
-            name = node['n']['name']
-            tag = node['n']['tag_name']
-            dict_node['name'] = name
-            dict_node['tag'] = tag
-            self.nodes.append(dict_node)
-            dict_node = {}
-        return self.nodes
-
-        print(self.nodes)
-
-neo4j = Neo4j()
-
-
-
-with open('nodes.txt', 'w', encoding='utf-8') as f:
-    f.write(neo4j.get_all_nodes())
+# Relationship查询
+relationship = graph.match_one(rel_type='Sub')
+print(relationship, type(relationship))

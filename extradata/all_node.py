@@ -23,8 +23,10 @@ class Nodes(object):
             name_list.append(name)
         return name_list
 
+
 nodes = Nodes()
 nodes_list = [str(i) for i in nodes.post()]
+# 列表转换为字符串
 result = '\n'.join(nodes_list)
 with open('nodes.txt', 'w', encoding='utf-8') as f:
     f.write(result)
